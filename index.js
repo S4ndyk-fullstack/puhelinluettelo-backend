@@ -19,10 +19,12 @@ const data = {
 }
 
 const express = require('express')
+const cors = require('cors')
 const bodyparser = require('body-parser')
 const morgan = require('morgan')
 const app = express()
 
+app.use(cors())
 app.use(bodyparser.json())
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
 
@@ -31,7 +33,7 @@ morgan.token('body', (req, res) => {
 })
 
 app.get('/api/persons', (req, res) => {
-    res.json(data)
+    res.json(data.persons)
 })
 app.get('/info', (req, res) => {
     const info = `<p>Phonebook has ${data.persons.length} people</br>${new Date(Date.now()).toUTCString()}</p>`
@@ -49,10 +51,12 @@ app.post('/api/persons/', (req, res) => {
     let person = req.body
     if(data.persons.find(nextPerson => nextPerson.name === person.name)) {
         res.status(400).send({error: 'name must be unique'}).end()
+        return
     }
 
     if(!person.name || !person.number) {
         res.status(400).send({error: 'name or number missing'}).end()
+        return
     }
 
     person = {
@@ -60,7 +64,7 @@ app.post('/api/persons/', (req, res) => {
         id: Math.ceil(Math.random() * 10000)
     }
     data.persons = data.persons.concat(person)
-    res.status(204).end()
+    res.json(person).status(204)
 })
 
 app.delete('/api/persons/:id', (req, res) => {
