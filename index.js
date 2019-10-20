@@ -29,8 +29,10 @@ app.get('/api/persons', (req, res, next) => {
     }).catch(err => next(err))
 })
 app.get('/info', (req, res) => {
-    const info = `<p>Phonebook has ${data.persons.length} people</br>${new Date(Date.now()).toUTCString()}</p>`
-    res.send(info)
+    Person.countDocuments((err, count) => {
+        const info = `<p>Phonebook has ${count} people</br>${new Date(Date.now()).toUTCString()}</p>`
+        res.send(info)
+    })
 })
 
 app.get('/api/persons/:id', (req, res, next) => {
