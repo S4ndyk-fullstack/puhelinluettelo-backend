@@ -12,54 +12,78 @@ app.use(bodyparser.json())
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
 
 morgan.token('body', (req, res) => {
-    return JSON.stringify(req.body)
+  return JSON.stringify(req.body)
 })
 
-app.get('/api/persons', (req, res) => {
-    console.log('Getting persons from mongdodb')
-    Person.find({}).then(persons => {
-      res.json(persons.map(person => person.toJSON()))
-      console.log('Persons returned succesfully')
-    })
+const errorHandler = (error, req, res, next) => {
+  console.log(error)
+  next(error)
+}
+
+app.get('/api/persons', (req, res, next) => {
+  console.log('Getting persons from mongdodb')
+  Person.find({}).then(persons => {
+    res.json(persons.map(person => person.toJSON()))
+    console.log('Persons returned succesfully')
+  }).catch(err => next(err))
 })
 app.get('/info', (req, res) => {
-    const info = `<p>Phonebook has ${data.persons.length} people</br>${new Date(Date.now()).toUTCString()}</p>`
-    res.send(info)
+  const info = `<p>Phonebook has ${data.persons.length} people</br>${new Date(Date.now()).toUTCString()}</p>`
+  res.send(info)
 })
 
-app.get('/api/persons/:id', (req, res) => {
-    const id = req.params.id
-    Person.findById(id)
-      .then(person => {
-        res.json(person)
-        console.log('Person with id ', id, 'returned succesfully')
-      }).catch(() => res.status(404).end())
-})
-
-app.post('/api/persons/', (req, res) => {
-    const body = req.body
-
-    if(!body.name || !body.number) {
-        return res.status(400).send({error: 'name or number missing'}).end()
-    }
-
-    const person = new Person ({
-      name: body.name,
-      number: body.number
-    })
-
-    person.save().then(savedPerson => {
-      res.json(savedPerson.toJSON()).status(204)
+app.get('/api/persons/:id', (req, res, next) => {
+  const id = req.params.id
+  Person.findById(id).then(person => res.json(person))
+    .catch(error => {
+      res.status(404).end()
+      next(error)
     })
 })
 
-app.delete('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
-    data.persons = data.persons.filter(person => person.id !== id)
-    res.status(204).end()
+app.post('/api/persons/', (req, res, next) => {
+  const body = req.body
+
+  if (!body.name || !body.number) {
+    return res.status(400).send({ error: 'name or number missing' }).end()
+  }
+
+  const person = new Person({
+    name: body.name,
+    number: body.number
+  })
+
+  person.save().then(savedPerson => {
+    res.json(savedPerson.toJSON()).status(204)
+  })
+    .catch(err => next(err))
 })
 
-const PORT = process.env.PORT || 3001
+app.delete('/api/persons/:id', (req, res, next) => {
+  Person.findByIdAndRemove(req.params.id)
+    .then(deletedPerson => {
+      res.json(deletedPerson.toJSON()).status(204)
+    })
+    .catch(err => next(err))
+})
+
+app.put('/api/persons/:id', (req, res, next) => {
+  const body = req.body
+  const person = {
+    name: body.name,
+    number: body.number
+  }
+
+  Person.findByIdAndUpdate(req.params.id, person, { new: true })
+    .then(updatedPerson => {
+      res.json(updatedPerson.toJSON())
+    })
+    .catch(err => next(err))
+})
+
+app.use(errorHandler)
+
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
-    console.log(`Listening to port ${PORT}`)
+  console.log(`Listening to port ${PORT}`)
 })
