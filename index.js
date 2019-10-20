@@ -16,8 +16,8 @@ morgan.token('body', (req, res) => {
 })
 
 const errorHandler = (error, req, res, next) => {
-  console.log(error)
-  next(error)
+  console.log(error.message)
+  return res.status(400).json({ error: error.message })
 }
 
 app.get('/api/persons', (req, res, next) => {
@@ -35,18 +35,11 @@ app.get('/info', (req, res) => {
 app.get('/api/persons/:id', (req, res, next) => {
   const id = req.params.id
   Person.findById(id).then(person => res.json(person))
-    .catch(error => {
-      res.status(404).end()
-      next(error)
-    })
+    .catch(error => next(error))
 })
 
 app.post('/api/persons/', (req, res, next) => {
   const body = req.body
-
-  if (!body.name || !body.number) {
-    return res.status(400).send({ error: 'name or number missing' }).end()
-  }
 
   const person = new Person({
     name: body.name,
